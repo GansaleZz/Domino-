@@ -11,9 +11,8 @@ begin
    a.Init;
   // a.Playing;
    g.InitGr;
-   g.MakeTable;
-   g.Hands(a.GetHand2,101,15);
-   g.Hands(a.GetHand1,101,getMaxY-85);
+   g.MakeTable(a);
+   g.WorkWithButtonEsc();
    readln;
 end.
 
