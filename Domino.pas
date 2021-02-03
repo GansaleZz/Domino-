@@ -1,12 +1,13 @@
 Unit Domino;
 
 Interface
- Uses crt;
+ Uses crt,Dice;
 
  Type
   Info = record
 	 First : byte;
 	 Second :byte;
+	 x,y1,y2:integer;
   End;
 
  Ptr = ^TPLay;
