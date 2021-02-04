@@ -87,7 +87,7 @@ Implementation
 		EscX[1]:=0; //Coordinates rectangle with key Esc
 		EscY[1]:=getmaxY;
 		EscX[2]:=135;
-		EscY[2]:=getmaxY-50;  
+		EscY[2]:=getmaxY-50;
 		
 		setfillstyle(1,Teal); // Here Im drawing key Esc (**)
 		Bar(EscX[1],EscY[2],EscX[2],EscY[1]); // <-(**)
@@ -96,7 +96,7 @@ Implementation
  		SetColor(white);// <-(**)
 		OutTextXY(25,getMaxY-45,'Exit');// <-(**)
 		
-		setfillstyle(1,Teal); 
+		setfillstyle(1,Teal);
 		Bar(getmaxX-EscX[2],EscY[2],getmaxX,EscY[1]); // key Market
 		SetColor(black);
 		Rectangle(getmaxX-EscX[2],EscY[2],getmaxX,EscY[1]);
@@ -105,16 +105,37 @@ Implementation
 	end;
 
 
-	Procedure GraphWin.WorkWithButtonEsc(); 
-	var  flag:boolean;
+	Procedure GraphWin.WorkWithButtonEsc();
+	var  flag,col:boolean;
              x,y:integer;
              state:word;
 	begin
 		flag := false;
+		col:=false;
 		repeat
 		state:=GetMouseButtons;
 		x:=GetMouseX;
 		y:=GetMouseY;
+		if (((EscX[2]>=x) and (EscY[2]<=y)) and ( col = false)) then begin
+			col:= true;
+			setfillstyle(1,DarkGray); // Here Im drawing key Esc (**)
+			Bar(EscX[1],EscY[2],EscX[2],EscY[1]);
+			setfillstyle(1,black);// <-(**)
+			SetColor(black);
+			Rectangle(EscX[1],EscY[2],EscX[2],EscY[1]);// <-(**)
+			SetColor(white);// <-(**)
+			OutTextXY(25,getMaxY-45,'Exit');// <-(**)
+		end;
+		if ((col) and ((EscX[2]<x) or (EscY[2]>y)))then begin
+			setfillstyle(1,Teal); // Here Im drawing key Esc (**)
+			Bar(EscX[1],EscY[2],EscX[2],EscY[1]); // <-(**)
+			SetColor(black);
+			setfillstyle(1,black);// <-(**)
+			Rectangle(EscX[1],EscY[2],EscX[2],EscY[1]);// <-(**)
+			SetColor(white);// <-(**)
+			OutTextXY(25,getMaxY-45,'Exit');// <-(**)
+			col:=false;
+		end;
 		If (((State and MouseLeftButton = MouseLeftButton)or (State and MouseRightButton = MouseRightButton)) and ((EscX[2]>=x) and (EscY[2]<=y)))   Then
 		begin
 			flag:=true;
