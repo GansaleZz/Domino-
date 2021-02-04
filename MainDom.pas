@@ -12,7 +12,7 @@ begin
   // a.Playing;
    g.InitGr;
    g.MakeTable(a);
-   g.WorkWithButtonEsc();
+   g.WorkWithButtonEsc;
    readln;
 end.
 
