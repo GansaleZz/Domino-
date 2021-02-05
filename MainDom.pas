@@ -8,11 +8,12 @@ var a:Game;
 begin
    ClrScr;
    Randomize;
-   a.Init;
+   //a.Init;
   // a.Playing;
-   g.InitGr;
-   g.MakeTable(a);
-   g.WorkWithButtonEsc;
+   g.Init();
+   g.MakeTable();
+   //g.TakeDice(a.getHand1);
+   g.Table;
    readln;
 end.
 
