@@ -22,6 +22,8 @@ Interface
 		Constructor Init; // Инициализируем базар и руки игроков
 		Function GetMarket:Ptr;
 		Function GetHand1:Ptr;
+		Procedure SetHand1(Hand1:ptr);
+		Procedure SetHand2(Hand2:ptr);
 		Function GetHand2:Ptr;
 		Function GetDesk:Ptr;
 		Procedure FirstMove(var f:boolean); //Первый ход
@@ -171,15 +173,25 @@ Interface
 	GetDesk:=Desk;
  end;
 
+Procedure Game.SetHand1(Hand1:ptr);
+begin
+	self.Hand1:=Hand1;
+end;
+
+Procedure Game.SetHand2(Hand2:ptr);
+begin
+	self.Hand2:=Hand2;
+end;
+
 //Вывод списка
  Procedure ShowList(List:ptr);
  var first:ptr;
  begin
 	first:=List;
-	writeln(List^.Tinfo.first,' ',List^.Tinfo.second);
+	writeln(List^.Tinfo.first,' ',List^.Tinfo.second,'  x: ',List^.Tinfo.x,' y1: ',List^.Tinfo.y1,' y2: ',List^.Tinfo.y2);
 	List:=List^.next;
 	while List<>first do begin
-		writeln(List^.Tinfo.first,' ',List^.Tinfo.second);
+		writeln(List^.Tinfo.first,' ',List^.Tinfo.second,'  x: ',List^.Tinfo.x,' y1: ',List^.Tinfo.y1,' y2: ',List^.Tinfo.y2);
 		List:=List^.next;
 	end;
 	List:=first;
