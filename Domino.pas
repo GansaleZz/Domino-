@@ -1,7 +1,7 @@
 Unit Domino;
 
 Interface
- Uses crt,Dice;
+ Uses crt;
 
  Type
   Info = record
