@@ -1,7 +1,8 @@
+
 Unit GraphPart;
 
 Interface
-	Uses Domino,WinGraph,WinMouse;
+	Uses Domino,WinGraph,WinMouse,HMouse;
 
 
 	Type
@@ -10,16 +11,21 @@ Interface
 		Constructor Init();
 		Procedure MakeTable();
 		Procedure Hands(var Hand:ptr; x,y:integer);
-        Procedure Dice(x,y:integer;draw:boolean);
+        Procedure Dice(x,y:integer;draw:boolean;Dice1:String = '' ;Dice2:String = '');
 		Procedure WorkWithButtonEsc();
 		Procedure TakeFromMarket(a:Ptr);
 		Function ChooseDice():Ptr;
 		Procedure TakeDice();
+		Procedure PartOfDesk();
+		Function PutDice :boolean ;
 		Procedure Table();
 	private
 		EscX,EscY,HandX:Array[1..2] of integer;
+		DeskX,DeskY:integer;
 		g:game;
 		HandY:integer;
+		ChoosenDice:ptr;
+		MouseOK:boolean;
 	end;
 
 
@@ -33,6 +39,7 @@ Implementation
 		gd := d8bit; gm := mFullScr;
         InitGraph(Gd, Gm, '');
 		g.Init;
+		ChoosenDice:=nil;
 	end;
 	
 
@@ -43,17 +50,21 @@ Implementation
 	 IntToStr:=S;
 	End;
 
-    Procedure GraphWin.Dice(x,y:integer;draw:boolean);
+    Procedure GraphWin.Dice(x,y:integer;draw:boolean;Dice1:String = '' ;Dice2:String = '');
     begin
-	if draw then begin
-		SetColor(black);
-        Rectangle(x,y,x+trunc((getmaxX-250)/28),y+100);
-        Line(x,y+45,x+trunc((getmaxX-250)/28),y+45);
-	end
-	else begin
-		setfillstyle(1,Viridian);
-		Bar(x,y,x+trunc((getmaxX-250)/28),y+100);
-	end;	
+		if draw then begin
+			SetColor(black);
+			Rectangle(x,y,x+trunc((getmaxX-250)/28),y+100);
+			Line(x,y+45,x+trunc((getmaxX-250)/28),y+45);
+			OutTextXY(x+10,y+10,Dice1);
+			OutTextXY(x+10,y+50,Dice2);
+			Dice1:='';
+			Dice2:='';
+		end
+		else begin
+			setfillstyle(1,Viridian);
+			Bar(x,y,x+trunc((getmaxX-250)/28),y+100);
+		end;	
     end;
 
 	Procedure GraphWin.Hands(var Hand:ptr; x,y:integer);
@@ -62,46 +73,37 @@ Implementation
 	begin
 		first:=Hand;
         SetTextStyle(3,2,4);
-        Dice(x-10,y-10,true);
 		Hand^.Tinfo.x:=x;
 		HandX[1]:=x-10;
 		Hand^.Tinfo.y1:=y;
 		HandY:=y-10;
-        OutTextXY(x,y,IntToStr(Hand^.Tinfo.first));
         y:=y+40;
 		Hand^.Tinfo.y2:=y;
-        OutTextXY(x,y,IntToStr(Hand^.Tinfo.second));
+		Dice(Hand^.Tinfo.x-10,Hand^.Tinfo.y1-10,true,IntToStr(Hand^.Tinfo.first),IntToStr(Hand^.Tinfo.second));
         y:=y-40;
 		Hand:=Hand^.next;
-		//for i:=1 to 21 do begin
 	    while Hand<>first do begin
 			x:=x+trunc((getmaxX-200)/28);
 			Hand^.Tinfo.x:=x;
 			HandX[2]:=x+30;
 			Hand^.Tinfo.y1:=y;
-            Dice(x-10,y-10,true);
-			OutTextXY(x,y,IntToStr(Hand^.Tinfo.first));
             y:=y+40;
 			Hand^.Tinfo.y2:=y;
-            OutTextXY(x,y,IntToStr(Hand^.Tinfo.second));
             y:=y-40;
+			Dice(Hand^.Tinfo.x-10,Hand^.Tinfo.y1-10,true,IntToStr(Hand^.Tinfo.first),IntToStr(Hand^.Tinfo.second));
 			Hand:=Hand^.next;
 		end;
 		Hand:=first;
 	end;
 
-        Procedure GraphWin.MakeTable();
-        var f:ptr;
+    Procedure GraphWin.MakeTable();
+    var f:ptr;
 	begin
 		setfillstyle(1,Viridian);
 		bar(0,0,getmaxX,getmaxY); // Color of background
 		SetColor(0);
-                f:=g.getHand2;
-                Hands(f,250,15); // Here im drawing Hands (*)
-				g.setHand2(f);
-                f:=g.getHand1;
+        f:=g.getHand1;
 		Hands(f,250,getMaxY-85); // <-(*)
-		g.setHand1(f);
 
 		EscX[1]:=0; //Coordinates rectangle with key Esc
 		EscY[1]:=getmaxY;
@@ -154,11 +156,11 @@ Implementation
 				col:=false;
 				flag:=true;
 			end;
-		If (((State and MouseLeftButton = MouseLeftButton)or (State and MouseRightButton = MouseRightButton)) and ((EscX[2]>=x) and (EscY[2]<=y)))   Then
-		begin
-			flag:=true;
-			halt;
-		end;
+			If (((State and MouseLeftButton = MouseLeftButton)or (State and MouseRightButton = MouseRightButton)) and ((EscX[2]>=x) and (EscY[2]<=y)))   Then
+			begin
+				flag:=true;
+				halt;
+			end;
 		until flag;
 	end;
 	
@@ -208,59 +210,174 @@ Implementation
 			state := GetMouseButtons;
 			x:=GetMouseX;
 			y:=GetMouseY;
-			if not f then begin
-				Current:=ChooseDice();
+			if (not f and not MouseOk) then begin
+				ChoosenDice:=ChooseDice();
+				Current:=ChoosenDice;
 				if Current <> nil then begin
 					Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-10,false);
-					Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-20,true);
-					OutTextXY(Current^.Tinfo.x,Current^.Tinfo.y1-10,IntToStr(Current^.Tinfo.first));
-					OutTextXY(Current^.Tinfo.x,Current^.Tinfo.y2-10,IntToStr(Current^.Tinfo.second));
+					Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-20,true,IntToStr(Current^.Tinfo.first),IntToStr(Current^.Tinfo.second));
 					f:=true;
 				end;
-			end;
-			if f then begin
+			end;	
+			if (f or MouseOK) then begin
 				repeat
-				state := GetMouseButtons;
-				x:=GetMouseX;
-				y:=GetMouseY;
-				if (Current^.next = first) then begin 
-					if(((Current^.Tinfo.x-10>x) or (HandX[2]<x)) or (HandY>y)) then begin 
-						Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-20,false);
-						Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-10,true);
-						OutTextXY(Current^.Tinfo.x,Current^.Tinfo.y1,IntToStr(Current^.Tinfo.first));
-						OutTextXY(Current^.Tinfo.x,Current^.Tinfo.y2,IntToStr(Current^.Tinfo.second));
+					Current:=ChoosenDice;
+					state := GetMouseButtons;
+					x:=GetMouseX;
+					y:=GetMouseY;
+					if ((State and MouseLeftButton = MouseLeftButton) and not MouseOK) then begin
+						MouseOk:=true;
 						bool:=true;
+					end
+					else begin
+						if ((State and MouseLeftButton = MouseLeftButton) and MouseOK) then begin
+							if (Current^.next = first) then begin
+								if(((Current^.Tinfo.x-10>x) or (HandX[2]<x)) or (HandY>y)) then begin
+									Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-20,false);
+									Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-10,true,IntToStr(Current^.Tinfo.first),IntToStr(Current^.Tinfo.second));
+									bool:=true;
+									MouseOK:=false;
+								end;
+							end
+							else
+								if (((Current^.Tinfo.x-10>x) or (Current^.next^.Tinfo.x-10<x)) or (HandY>y)) then begin
+									Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-20,false);
+									Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-10,true,IntToStr(Current^.Tinfo.first),IntToStr(Current^.Tinfo.second));
+									bool:=true;
+									MouseOK:=false;
+								end;
+						end
+						else begin
+							if not MouseOk then
+								if (Current^.next = first) then begin
+									if(((Current^.Tinfo.x-10>x) or (HandX[2]<x)) or (HandY>y)) then begin
+										Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-20,false);
+										Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-10,true,IntToStr(Current^.Tinfo.first),IntToStr(Current^.Tinfo.second));
+										bool:=true;
+									end;
+								end else
+								if (((Current^.Tinfo.x-10>x) or (Current^.next^.Tinfo.x-10<x)) or (HandY>y)) then begin
+									Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-20,false);
+									Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-10,true,IntToStr(Current^.Tinfo.first),IntToStr(Current^.Tinfo.second));
+									bool:=true;
+								end;
+						end;
 					end;
-				end else 
-				if (((Current^.Tinfo.x-10>x) or (Current^.next^.Tinfo.x-10<x)) or (HandY>y)) then begin
-					Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-20,false);
-					Dice(Current^.Tinfo.x-10,Current^.Tinfo.y1-10,true);
-					OutTextXY(Current^.Tinfo.x,Current^.Tinfo.y1,IntToStr(Current^.Tinfo.first));
-					OutTextXY(Current^.Tinfo.x,Current^.Tinfo.y2,IntToStr(Current^.Tinfo.second));
-					bool:=true;
-					exit;
-				end;
+					if bool then exit;
 				until(bool = true);
 			end;
 		until bool = true;	
 	end;
 	
-
+	Function GraphWin.PutDice():boolean ;
+	var temp,first:ptr;
+		bool:boolean;
+	begin
+		bool:=false;
+		first:=g.getHand1;
+		if ((ChoosenDice<> nil) and MouseOK) then begin
+			Dice(trunc(GetMaxX/2),0,true,IntToStr(ChoosenDice^.Tinfo.first),IntToStr(ChoosenDice^.Tinfo.second));
+			Dice(ChoosenDice^.Tinfo.x-10,ChoosenDice^.Tinfo.y1-20,false);
+			temp:=g.getHand1;
+			repeat
+				if (temp^.Tinfo.x = ChoosenDice^.Tinfo.x) and (temp^.next^.Tinfo.x = ChoosenDice^.Tinfo.x) then begin
+					temp:=nil;
+					g.SetHand1(temp);
+					setfillstyle(1,Viridian);              
+					Bar(HandX[1],HandY,HandX[2]+2,getMaxY);
+					break;
+				end else 
+					if temp^.Tinfo.x = ChoosenDice^.Tinfo.x then begin 
+						repeat
+							temp:=temp^.next;
+						until(temp^.next = first);
+						first:=first^.next;
+						temp^.next:=first;
+						temp:=temp^.next;
+						g.setHand1(temp);
+						// Updating hand by redrawing 
+						setfillstyle(1,Viridian);              
+						Bar(HandX[1],HandY,HandX[2]+2,getMaxY);
+						Hands(temp,250,getMaxY-85);
+						bool:=true;
+						break;
+					end else 
+						if temp^.next^.Tinfo.x = ChoosenDice^.Tinfo.x then begin
+							//Removing dice that we place (by click on black square)
+							temp^.next:=ChoosenDice^.next;
+							//Dispose(ChooseDice);
+							temp:=g.getHand1;
+							// Updating hand by redrawing 
+							setfillstyle(1,Viridian);              
+							Bar(HandX[1],HandY,HandX[2]+2,getMaxY);
+							Hands(temp,250,getMaxY-85);
+							bool:=true;
+							break;
+						end
+						else
+							temp:=temp^.next;
+				//if temp = first then break; 
+			until(bool = true );
+			MouseOK:=false;
+		end;
+		PutDice:=bool;
+	end;
+	
+	Procedure GraphWin.PartOfDesk();
+	var i,y:integer;
+	begin
+		{Randomize;
+		y:=28;
+		for i:=1 to 28 do begin
+			SetColor(Random(100));
+			Rectangle(trunc(GetMaxX/2)-7,trunc(HandY/28)+(y-14),trunc(GetMaxX/2)+7,trunc(HandY)+y);
+			Rectangle(trunc(GetMaxX/2)-7,trunc(HandY/28)+y,trunc(GetMaxX/2)+7,trunc(HandY)+(y+14));
+			y:=y+28;
+		end;}
+	end;
+	
     Procedure GraphWin.Table();
 	var x,y:integer;
-		fs,OnDice:boolean;
+		fs:boolean;
 		state:word;
-		cur:ptr;
+		cur,f:ptr;
 	begin
 		fs:=true;
-		OnDice:=false;
+		MouseOk:=false;
+		setfillstyle(1,Black);
+		Bar(trunc(GetMaxX/2-10),trunc(GetMaxY/2-10),trunc(GetMaxX/2+10),trunc(getmaxY/2+10));
 		repeat
 			state:= GetMouseButtons;
 			x:=GetMouseX;
 			y:=GetMouseY;
-			if ((EscX[2]>=x) and (EscY[2]<=y)) then WorkWithButtonEsc else begin
-				if ((HandX[1]<=x) and (HandX[2]>=x) and (HandY <=y)) then
-					TakeDice();		
+			if g.getHand1 = nil then begin
+				writeln('The end!');
+				repeat 
+					x:=GetMouseX;
+					y:=GetMouseY;
+				if ((EscX[2]>=x) and (EscY[2]<=y)) then WorkWithButtonEsc()
+				until(fs =false);
+			end;
+			if ((EscX[2]>=x) and (EscY[2]<=y)) then WorkWithButtonEsc() else begin
+				if ((HandX[1]<=x) and (HandX[2]>=x) and (HandY <=y)) and not MouseOK then
+					TakeDice()
+					else  if MouseOk then begin
+							while state=0 do begin  
+								state:=GetMouseButtons;
+								x:=GetMouseX;
+								y:=GetMouseY;
+							end;
+							if ((((x<=trunc(GetMaxX/2+10))and(x>=trunc(GetMaxX/2-10))) and ((y<=trunc(getmaxY/2+10))and(y>=trunc(GetMaxY/2-10))))  and (State = MouseLeftButton) and MouseOk) then begin
+									if PutDice() then begin
+											MouseOk:=false;
+									end;
+							end
+							else if ((ChoosenDice^.Tinfo.y1>y) and (State = MouseLeftButton)) then begin 
+									Dice(ChoosenDice^.Tinfo.x-10,ChoosenDice^.Tinfo.y1-20,false);
+									Dice(ChoosenDice^.Tinfo.x-10,ChoosenDice^.Tinfo.y1-10,true,IntToStr(ChoosenDice^.Tinfo.first),IntToStr(ChoosenDice^.Tinfo.second));
+									MouseOk:=false;
+							end;
+					end;
 			end;
 		until (fs = false);
 	end;
