@@ -270,53 +270,23 @@ Implementation
 	end;
 	
 	Function GraphWin.PutDice():boolean ;
-	var temp,first:ptr;
+	var temp:ptr;
 		bool:boolean;
 	begin
 		bool:=false;
-		first:=g.getHand1;
 		if ((ChoosenDice<> nil) and MouseOK) then begin
 			Dice(trunc(GetMaxX/2),0,true,IntToStr(ChoosenDice^.Tinfo.first),IntToStr(ChoosenDice^.Tinfo.second));
 			Dice(ChoosenDice^.Tinfo.x-10,ChoosenDice^.Tinfo.y1-20,false);
 			temp:=g.getHand1;
 			repeat
-				if (temp^.Tinfo.x = ChoosenDice^.Tinfo.x) and (temp^.next^.Tinfo.x = ChoosenDice^.Tinfo.x) then begin
-					temp:=nil;
-					g.SetHand1(temp);
-					setfillstyle(1,Viridian);              
-					Bar(HandX[1],HandY,HandX[2]+2,getMaxY);
+				if temp^.next^.Tinfo.x = ChoosenDice^.Tinfo.x then begin
+					temp^.next:=ChoosenDice^.next;
+					Dispose(ChooseDice);
+					bool:=true;
 					break;
-				end else 
-					if temp^.Tinfo.x = ChoosenDice^.Tinfo.x then begin 
-						repeat
-							temp:=temp^.next;
-						until(temp^.next = first);
-						first:=first^.next;
-						temp^.next:=first;
-						temp:=temp^.next;
-						g.setHand1(temp);
-						// Updating hand by redrawing 
-						setfillstyle(1,Viridian);              
-						Bar(HandX[1],HandY,HandX[2]+2,getMaxY);
-						Hands(temp,250,getMaxY-85);
-						bool:=true;
-						break;
-					end else 
-						if temp^.next^.Tinfo.x = ChoosenDice^.Tinfo.x then begin
-							//Removing dice that we place (by click on black square)
-							temp^.next:=ChoosenDice^.next;
-							//Dispose(ChooseDice);
-							temp:=g.getHand1;
-							// Updating hand by redrawing 
-							setfillstyle(1,Viridian);              
-							Bar(HandX[1],HandY,HandX[2]+2,getMaxY);
-							Hands(temp,250,getMaxY-85);
-							bool:=true;
-							break;
-						end
-						else
-							temp:=temp^.next;
-				//if temp = first then break; 
+				end
+				else
+					temp:=temp^.next
 			until(bool = true );
 			MouseOK:=false;
 		end;
@@ -350,14 +320,6 @@ Implementation
 			state:= GetMouseButtons;
 			x:=GetMouseX;
 			y:=GetMouseY;
-			if g.getHand1 = nil then begin
-				writeln('The end!');
-				repeat 
-					x:=GetMouseX;
-					y:=GetMouseY;
-				if ((EscX[2]>=x) and (EscY[2]<=y)) then WorkWithButtonEsc()
-				until(fs =false);
-			end;
 			if ((EscX[2]>=x) and (EscY[2]<=y)) then WorkWithButtonEsc() else begin
 				if ((HandX[1]<=x) and (HandX[2]>=x) and (HandY <=y)) and not MouseOK then
 					TakeDice()
