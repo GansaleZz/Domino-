@@ -17,4 +17,3 @@ begin
    readln;
 end.
 
-
