@@ -1,7 +1,8 @@
+
 Unit GraphPart;
 
 Interface
-	Uses Domino,WinGraph,WinMouse;
+	Uses Domino,WinGraph,WinMouse,HMouse;
 
 
 	Type
@@ -14,15 +15,17 @@ Interface
 		Procedure WorkWithButtonEsc();
 		Procedure TakeFromMarket(a:Ptr);
 		Function ChooseDice():Ptr;
-		Procedure TakeDice(var MouseOk:boolean);
+		Procedure TakeDice();
 		Procedure PartOfDesk();
+		Function PutDice :boolean ;
 		Procedure Table();
 	private
 		EscX,EscY,HandX:Array[1..2] of integer;
+		DeskX,DeskY:integer;
 		g:game;
 		HandY:integer;
 		ChoosenDice:ptr;
-		OnDice:boolean;
+		MouseOK:boolean;
 	end;
 
 
@@ -99,12 +102,8 @@ Implementation
 		setfillstyle(1,Viridian);
 		bar(0,0,getmaxX,getmaxY); // Color of background
 		SetColor(0);
-        f:=g.getHand2;
-        Hands(f,250,15); // Here im drawing Hands (*)
-		g.setHand2(f);
         f:=g.getHand1;
 		Hands(f,250,getMaxY-85); // <-(*)
-		g.setHand1(f);
 
 		EscX[1]:=0; //Coordinates rectangle with key Esc
 		EscY[1]:=getmaxY;
@@ -198,7 +197,7 @@ Implementation
 		until (( Current = first) or bool);
 	end;
 	
-	Procedure GraphWin.TakeDice(var MouseOk:boolean);
+	Procedure GraphWin.TakeDice();
 	var state:word;
 		x,y:integer;
 		Current,first:ptr;
@@ -229,7 +228,6 @@ Implementation
 					if ((State and MouseLeftButton = MouseLeftButton) and not MouseOK) then begin
 						MouseOk:=true;
 						bool:=true;
-						OnDice:=true;
 					end
 					else begin
 						if ((State and MouseLeftButton = MouseLeftButton) and MouseOK) then begin
@@ -271,25 +269,77 @@ Implementation
 		until bool = true;	
 	end;
 	
-	Procedure GraphWin.PartOfDesk();
+	Function GraphWin.PutDice():boolean ;
+	var temp:ptr;
+		bool:boolean;
 	begin
+		bool:=false;
+		if ((ChoosenDice<> nil) and MouseOK) then begin
+			Dice(trunc(GetMaxX/2),0,true,IntToStr(ChoosenDice^.Tinfo.first),IntToStr(ChoosenDice^.Tinfo.second));
+			Dice(ChoosenDice^.Tinfo.x-10,ChoosenDice^.Tinfo.y1-20,false);
+			temp:=g.getHand1;
+			repeat
+				if temp^.next^.Tinfo.x = ChoosenDice^.Tinfo.x then begin
+					temp^.next:=ChoosenDice^.next;
+					Dispose(ChooseDice);
+					bool:=true;
+					break;
+				end
+				else
+					temp:=temp^.next
+			until(bool = true );
+			MouseOK:=false;
+		end;
+		PutDice:=bool;
+	end;
 	
+	Procedure GraphWin.PartOfDesk();
+	var i,y:integer;
+	begin
+		{Randomize;
+		y:=28;
+		for i:=1 to 28 do begin
+			SetColor(Random(100));
+			Rectangle(trunc(GetMaxX/2)-7,trunc(HandY/28)+(y-14),trunc(GetMaxX/2)+7,trunc(HandY)+y);
+			Rectangle(trunc(GetMaxX/2)-7,trunc(HandY/28)+y,trunc(GetMaxX/2)+7,trunc(HandY)+(y+14));
+			y:=y+28;
+		end;}
 	end;
 	
     Procedure GraphWin.Table();
 	var x,y:integer;
-		fs,MouseOk:boolean;
+		fs:boolean;
 		state:word;
 		cur,f:ptr;
 	begin
 		fs:=true;
 		MouseOk:=false;
+		setfillstyle(1,Black);
+		Bar(trunc(GetMaxX/2-10),trunc(GetMaxY/2-10),trunc(GetMaxX/2+10),trunc(getmaxY/2+10));
 		repeat
 			state:= GetMouseButtons;
 			x:=GetMouseX;
 			y:=GetMouseY;
-			if ((EscX[2]>=x) and (EscY[2]<=y)) then WorkWithButtonEsc else begin
-				if ((HandX[1]<=x) and (HandX[2]>=x) and (HandY <=y)) then TakeDice(MouseOk);
+			if ((EscX[2]>=x) and (EscY[2]<=y)) then WorkWithButtonEsc() else begin
+				if ((HandX[1]<=x) and (HandX[2]>=x) and (HandY <=y)) and not MouseOK then
+					TakeDice()
+					else  if MouseOk then begin
+							while state=0 do begin  
+								state:=GetMouseButtons;
+								x:=GetMouseX;
+								y:=GetMouseY;
+							end;
+							if ((((x<=trunc(GetMaxX/2+10))and(x>=trunc(GetMaxX/2-10))) and ((y<=trunc(getmaxY/2+10))and(y>=trunc(GetMaxY/2-10))))  and (State = MouseLeftButton) and MouseOk) then begin
+									if PutDice() then begin
+											MouseOk:=false;
+									end;
+							end
+							else if ((ChoosenDice^.Tinfo.y1>y) and (State = MouseLeftButton)) then begin 
+									Dice(ChoosenDice^.Tinfo.x-10,ChoosenDice^.Tinfo.y1-20,false);
+									Dice(ChoosenDice^.Tinfo.x-10,ChoosenDice^.Tinfo.y1-10,true,IntToStr(ChoosenDice^.Tinfo.first),IntToStr(ChoosenDice^.Tinfo.second));
+									MouseOk:=false;
+							end;
+					end;
 			end;
 		until (fs = false);
 	end;
