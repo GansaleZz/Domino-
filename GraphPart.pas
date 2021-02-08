@@ -2,7 +2,7 @@
 Unit GraphPart;
 
 Interface
-	Uses Domino,WinGraph,WinMouse,HMouse;
+	Uses Domino,WinGraph,WinMouse;
 
 
 	Type
@@ -17,7 +17,8 @@ Interface
 		Function ChooseDice():Ptr;
 		Procedure TakeDice();
 		Procedure PartOfDesk();
-		Function PutDice :boolean ;
+		Procedure RotationOfDice(x,y:integer;var Horizontal:boolean; var count:word);
+		Procedure PutDice(x,y:integer);
 		Procedure Table();
 	private
 		EscX,EscY,HandX:Array[1..2] of integer;
@@ -43,12 +44,16 @@ Implementation
 	end;
 	
 
+
 	Function IntToStr(I : byte) : String;
 	Var S : String [11];
 	Begin
 	 Str(I, S);
 	 IntToStr:=S;
 	End;
+
+
+
 
     Procedure GraphWin.Dice(x,y:integer;draw:boolean;Dice1:String = '' ;Dice2:String = '');
     begin
@@ -66,6 +71,9 @@ Implementation
 			Bar(x,y,x+trunc((getmaxX-250)/28),y+100);
 		end;	
     end;
+
+
+
 
 	Procedure GraphWin.Hands(var Hand:ptr; x,y:integer);
 	var first:ptr;
@@ -96,14 +104,19 @@ Implementation
 		Hand:=first;
 	end;
 
+
+
+
+
+
     Procedure GraphWin.MakeTable();
-    var f:ptr;
+    var temp:ptr;
 	begin
 		setfillstyle(1,Viridian);
 		bar(0,0,getmaxX,getmaxY); // Color of background
 		SetColor(0);
-        f:=g.getHand1;
-		Hands(f,250,getMaxY-85); // <-(*)
+        temp:=g.getHand1;
+		Hands(temp,250,getMaxY-85); // <-(*)
 
 		EscX[1]:=0; //Coordinates rectangle with key Esc
 		EscY[1]:=getmaxY;
@@ -126,15 +139,17 @@ Implementation
 	end;
 
 
+
+
+
+
 	Procedure GraphWin.WorkWithButtonEsc();
 	var  flag,col:boolean;
              x,y:integer;
-             state:word;
 	begin
 		flag := false;
 		col:=false;
 		repeat
-			state := GetMouseButtons;
 			x:=GetMouseX;
 			y:=GetMouseY;
 			if (((EscX[2]>=x) and (EscY[2]<=y)) and ( col = false)) then begin
@@ -156,7 +171,7 @@ Implementation
 				col:=false;
 				flag:=true;
 			end;
-			If (((State and MouseLeftButton = MouseLeftButton)or (State and MouseRightButton = MouseRightButton)) and ((EscX[2]>=x) and (EscY[2]<=y)))   Then
+			If (((GetMouseButtons and MouseLeftButton = MouseLeftButton)or (GetMouseButtons and MouseRightButton = MouseRightButton)) and ((EscX[2]>=x) and (EscY[2]<=y)))   Then
 			begin
 				flag:=true;
 				halt;
@@ -164,17 +179,18 @@ Implementation
 		until flag;
 	end;
 	
+	
+	
+	
 	Function GraphWin.ChooseDice():Ptr;
 	var first,Current:ptr;
 		bool:boolean;
-		state:word;
 		x,y:integer;
 	begin
 		Current:=g.getHand1;
 		first:=Current;
 		bool:=false;
 		repeat
-			state:=GetMouseButtons;
 			x:=GetMouseX;
 			y:=GetMouseY;
 			if ((x>=HandX[1]) and (x<=HandX[2]) and (y>=HandY)) then begin
@@ -197,6 +213,13 @@ Implementation
 		until (( Current = first) or bool);
 	end;
 	
+	
+	
+	
+	
+	//Its realization of "Animation" of hand
+	//MouseOK - if we clicked on dice  - then true ( this dice saving on ChoosenDice)
+	// f - boolean of cycle (cout of steps)
 	Procedure GraphWin.TakeDice();
 	var state:word;
 		x,y:integer;
@@ -269,59 +292,123 @@ Implementation
 		until bool = true;	
 	end;
 	
-	Function GraphWin.PutDice():boolean ;
+	
+	
+	
+	
+	Procedure GraphWin.RotationOfDice(x,y:integer;var Horizontal:boolean;var count:word);
+	var temp:integer;
+		tempInf:byte;
+	begin
+		inc(count);
+		if count = 2 then begin
+			tempInf:=ChoosenDice^.Tinfo.first;
+			ChoosenDice^.Tinfo.first:=ChoosenDice^.Tinfo.second;
+			ChoosenDice^.Tinfo.second:=tempInf;
+		end;
+		if count = 4 then begin
+			count:=0;
+			tempInf:=ChoosenDice^.Tinfo.first;
+			ChoosenDice^.Tinfo.first:=ChoosenDice^.Tinfo.second;
+			ChoosenDice^.Tinfo.second:=tempInf;
+		end;
+		if Horizontal then begin
+			setfillstyle(1,Viridian);
+			Bar(ChoosenDice^.Tinfo.x-10,ChoosenDice^.Tinfo.y1,ChoosenDice^.Tinfo.x+2*trunc((getmaxX-250)/28),ChoosenDice^.Tinfo.y2);
+			Dice(x-10,y-10,true,IntToStr(ChoosenDice^.Tinfo.first),IntToStr(ChoosenDice^.Tinfo.second));
+		end else begin
+			Dice(x-10,y-10,false);
+			ChoosenDice^.Tinfo.x:=x - trunc((getmaxX-250)/28)-10;
+			temp:=trunc((ChoosenDice^.Tinfo.y2-ChoosenDice^.Tinfo.y1)/2);
+			ChoosenDice^.Tinfo.y1:= y - temp+35;
+			ChoosenDice^.Tinfo.y2:= y + temp+35;
+			Rectangle(ChoosenDice^.Tinfo.x-10,ChoosenDice^.Tinfo.y1,ChoosenDice^.Tinfo.x+2*trunc((getmaxX-250)/28),ChoosenDice^.Tinfo.y2);
+			Line(ChoosenDice^.Tinfo.x+40,ChoosenDice^.Tinfo.y1,ChoosenDice^.Tinfo.x+40,ChoosenDice^.Tinfo.y2);
+			OutTextXY(ChoosenDice^.Tinfo.x+5,ChoosenDice^.Tinfo.y1,IntToStr(ChoosenDice^.Tinfo.first));
+			OutTextXY(ChoosenDice^.Tinfo.x+2*trunc((getmaxX-250)/28)-30,ChoosenDice^.Tinfo.y2-40,IntToStr(ChoosenDice^.Tinfo.second));
+		end;	
+		Horizontal:=not Horizontal;
+	end;
+	
+	
+	
+	
+	
+	Procedure GraphWin.PutDice(x,y:integer) ;
 	var temp,first:ptr;
-		bool:boolean;
+		bool,Horizontal:boolean;
+		count:word;
 	begin
 		bool:=false;
+		count:=0;
+		Horizontal:=false;
 		first:=g.getHand1;
+		temp:=g.getHand1;
 		if ((ChoosenDice<> nil) and MouseOK) then begin
-			Dice(trunc(GetMaxX/2),0,true,IntToStr(ChoosenDice^.Tinfo.first),IntToStr(ChoosenDice^.Tinfo.second));
+			Dice(x-10,y-10,true,IntToStr(ChoosenDice^.Tinfo.first),IntToStr(ChoosenDice^.Tinfo.second));
 			Dice(ChoosenDice^.Tinfo.x-10,ChoosenDice^.Tinfo.y1-20,false);
 			temp:=g.getHand1;
 			repeat
 				if (temp^.Tinfo.x = ChoosenDice^.Tinfo.x) and (temp^.next^.Tinfo.x = ChoosenDice^.Tinfo.x) then begin
 					temp:=nil;
 					g.SetHand1(temp);
-					setfillstyle(1,Viridian);              
+					setfillstyle(1,Viridian);
 					Bar(HandX[1],HandY,HandX[2]+2,getMaxY);
 					break;
-				end else 
-					if temp^.Tinfo.x = ChoosenDice^.Tinfo.x then begin 
-						repeat
-							temp:=temp^.next;
-						until(temp^.next = first);
-						first:=first^.next;
-						temp^.next:=first;
-						temp:=temp^.next;
-						g.setHand1(temp);
-						// Updating hand by redrawing 
-						setfillstyle(1,Viridian);              
-						Bar(HandX[1],HandY,HandX[2]+2,getMaxY);
-						Hands(temp,250,getMaxY-85);
-						bool:=true;
-						break;
-					end else 
+				end else
+					if temp^.Tinfo.x = ChoosenDice^.Tinfo.x then begin
+							while (GetMouseButtons =0 ) do begin
+								writeln(GetMouseButtons);
+								if (GetMouseButtons = MouseLeftButton) then begin
+									repeat
+										temp:=temp^.next;
+									until(temp^.next = first);
+									first:=first^.next;
+									temp^.next:=first;
+									temp:=temp^.next;
+									g.setHand1(temp);
+									// Updating hand by redrawing
+									setfillstyle(1,Viridian);
+									Bar(HandX[1],HandY,HandX[2]+2,getMaxY);
+									Hands(temp,250,getMaxY-85);
+									bool:=true;
+									break;
+								end
+								else if (GetMouseButtons = MouseRightButton ) then begin
+									RotationOfDice(x,y,Horizontal,count);
+								end;
+							end;
+					end else
 						if temp^.next^.Tinfo.x = ChoosenDice^.Tinfo.x then begin
-							//Removing dice that we place (by click on black square)
-							temp^.next:=ChoosenDice^.next;
-							//Dispose(ChooseDice);
-							temp:=g.getHand1;
-							// Updating hand by redrawing 
-							setfillstyle(1,Viridian);              
-							Bar(HandX[1],HandY,HandX[2]+2,getMaxY);
-							Hands(temp,250,getMaxY-85);
-							bool:=true;
-							break;
+							while (GetMouseButtons =0 ) do begin
+								if (GetMouseButtons = MouseLeftButton) then begin
+									first:=ChoosenDice^.next;
+									temp^.next:=first;
+									g.setHand1(temp);
+									//Dispose(ChooseDice);
+									temp:=g.getHand1;
+									// Updating hand by redrawing
+									setfillstyle(1,Viridian);
+									Bar(HandX[1],HandY,HandX[2]+2,getMaxY);
+									Hands(temp,250,getMaxY-85);
+									bool:=true;
+									break;
+								end
+								else if (GetMouseButtons = MouseRightButton) then begin
+									RotationOfDice(x,y,Horizontal,count);
+								end;
+							end;
 						end
 						else
-							temp:=temp^.next;
-				//if temp = first then break; 
+							temp:=temp^.next;		
 			until(bool = true );
 			MouseOK:=false;
 		end;
-		PutDice:=bool;
 	end;
+	
+	
+	
+	
 	
 	Procedure GraphWin.PartOfDesk();
 	var i,y:integer;
@@ -336,10 +423,13 @@ Implementation
 		end;}
 	end;
 	
+	
+	
+	
+	
     Procedure GraphWin.Table();
 	var x,y:integer;
 		fs:boolean;
-		state:word;
 		cur,f:ptr;
 	begin
 		fs:=true;
@@ -347,12 +437,11 @@ Implementation
 		setfillstyle(1,Black);
 		Bar(trunc(GetMaxX/2-10),trunc(GetMaxY/2-10),trunc(GetMaxX/2+10),trunc(getmaxY/2+10));
 		repeat
-			state:= GetMouseButtons;
 			x:=GetMouseX;
 			y:=GetMouseY;
 			if g.getHand1 = nil then begin
 				writeln('The end!');
-				repeat 
+				repeat
 					x:=GetMouseX;
 					y:=GetMouseY;
 				if ((EscX[2]>=x) and (EscY[2]<=y)) then WorkWithButtonEsc()
@@ -362,17 +451,14 @@ Implementation
 				if ((HandX[1]<=x) and (HandX[2]>=x) and (HandY <=y)) and not MouseOK then
 					TakeDice()
 					else  if MouseOk then begin
-							while state=0 do begin  
-								state:=GetMouseButtons;
+							while GetMouseButtons=0 do begin
 								x:=GetMouseX;
 								y:=GetMouseY;
 							end;
-							if ((((x<=trunc(GetMaxX/2+10))and(x>=trunc(GetMaxX/2-10))) and ((y<=trunc(getmaxY/2+10))and(y>=trunc(GetMaxY/2-10))))  and (State = MouseLeftButton) and MouseOk) then begin
-									if PutDice() then begin
-											MouseOk:=false;
-									end;
+							if (((HandX[1] > x) or (HandX[2]<x)) or (HandY>y)) then begin
+								PutDice(x,y);
 							end
-							else if ((ChoosenDice^.Tinfo.y1>y) and (State = MouseLeftButton)) then begin 
+							else if ((ChoosenDice^.Tinfo.y1>y) and (GetMouseButtons = MouseLeftButton)) then begin
 									Dice(ChoosenDice^.Tinfo.x-10,ChoosenDice^.Tinfo.y1-20,false);
 									Dice(ChoosenDice^.Tinfo.x-10,ChoosenDice^.Tinfo.y1-10,true,IntToStr(ChoosenDice^.Tinfo.first),IntToStr(ChoosenDice^.Tinfo.second));
 									MouseOk:=false;
