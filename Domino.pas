@@ -1,13 +1,14 @@
 Unit Domino;
 
 Interface
- Uses crt,Dice;
+ Uses crt,Wingraph;
 
  Type
   Info = record
 	 First : byte;
 	 Second :byte;
 	 x,y1,y2:integer;
+	 Pos:boolean; //false - vertical, true - horizontal
   End;
 
  Ptr = ^TPLay;
@@ -25,18 +26,17 @@ Interface
 		Procedure SetHand1(Hand1:ptr);
 		Procedure SetHand2(Hand2:ptr);
 		Function GetHand2:Ptr;
-		Function GetDesk:Ptr;
-		Procedure FirstMove(var f:boolean); //Первый ход
+		Procedure FirstMove(var f:boolean;var Desk:ptr); //Первый ход
 		Procedure TakeFromMarket(bool:boolean); //Взять кость с маркета
 		Procedure TakeFromHand(var bool:boolean;temp:info);
 		Procedure ScoreOfHands;
-		Procedure ShowDesk;
+	           //Procedure ShowDesk;
 		Procedure Playing;
 	private
 		Market:Ptr; // Базар
 		Hand1:Ptr; // Рука первого игрока
         Hand2:Ptr; // Рука второго игрока
-		Desk:Ptr; //Стол
+		//Desk:Ptr; //Стол
         Left:byte; //Осталось
  end;
 
@@ -168,10 +168,6 @@ Interface
 	GetHand2:=Hand2;
  end;
 
- Function Game.GetDesk:Ptr;
- begin
-	GetDesk:=Desk;
- end;
 
 Procedure Game.SetHand1(Hand1:ptr);
 begin
@@ -197,22 +193,9 @@ end;
 	List:=first;
  end;
 
- Procedure Game.Showdesk;
- var first:Ptr;
- begin
-	first:=Desk;
-	write(Desk^.Tinfo.First,' ',Desk^.Tinfo.Second,'   ');
-	Desk:=Desk^.next;
-	while Desk<>first do begin
-		write(Desk^.Tinfo.First,' ',Desk^.Tinfo.Second,'   ');
-		if Desk^.next = first then break else
-			Desk:=Desk^.next;
-	end;
-	writeln;
- end;
 
 
- Procedure Game.FirstMove(var f:boolean);
+ Procedure Game.FirstMove(var f:boolean;var Desk:ptr);
  var First,DelItem:Ptr;
      temp:info;
      i:byte;
@@ -283,6 +266,10 @@ end;
             if (Hand1^.next^.TInfo.first = temp.first) and (Hand1^.next^.Tinfo.second = temp.second) then begin
 				Desk^.Tinfo.first:=temp.first;
 				Desk^.Tinfo.second:=temp.second;
+				Desk^.Tinfo.x:=trunc(getmaxX/2);
+				Desk^.Tinfo.y1:=trunc(getMaxY/2)-50;
+				Desk^.Tinfo.y2:=Desk^.Tinfo.y1+100;
+				Desk^.Tinfo.pos:=false;
 				DelItem:=Hand1^.next;
 				if Hand1^.next = first then begin
 					first:=Hand1^.next^.next;
@@ -304,6 +291,10 @@ end;
              if (Hand2^.next^.TInfo.first = temp.first) and (Hand2^.next^.Tinfo.second = temp.second) then begin
                 Desk^.Tinfo.first:=temp.first;
                 Desk^.Tinfo.second:=temp.second;
+				Desk^.Tinfo.x:=trunc(getmaxX/2);
+				Desk^.Tinfo.y1:=trunc(getMaxY/2)-50;
+				Desk^.Tinfo.y2:=Desk^.Tinfo.y1+100;
+				Desk^.Tinfo.pos:=false;
                 DelItem:=Hand2^.next;
 				if Hand2^.next = first then begin
 					first:=Hand2^.next^.next;
@@ -334,6 +325,7 @@ end;
  begin
      first:=Market;
      tempb:=False;
+	 if Market = nil then exit;
      if bool then begin
          FirstH:=Hand1;
 		 templ:=Hand1^.Tinfo;
@@ -405,6 +397,7 @@ end;
          Hand2:=FirstH;
      end;
 	 Market:=first;
+	 if Left = 0 then Market:=nil;
  end;
 
  Procedure Game.TakeFromHand(var bool:boolean;temp:info);
@@ -492,7 +485,7 @@ end;
 	else if Score < Score2 then
 		writeln('Won Second player because he has most points in his hand')
 		 else
-			writeln('There is no winners! Score of first player is equal to score of second player.');
+			writeln('There is no winners! Score of the first player is equal to the score of the second player.');
 	writeln('Score of the first player: ',Score);
 	writeln('Score of the second player: ',Score2);
  end;
@@ -503,7 +496,7 @@ end;
      temp,templ:info;
      i,j:word;
  begin
-     EndG:=FALSE;
+    { EndG:=FALSE;
 	 i:=1;
      FirstMove(bool);
 	 writeln('Round ',i);
@@ -518,7 +511,7 @@ end;
 	 inc(i);
 	 FirstD:=Desk;
 	 writeln('Desk: ');
-	 ShowDesk;	
+	// ShowDesk;	
 	 Writeln('Round ',i);
 	 while ENDG<>TRUE do begin
 		if bool then begin
@@ -647,8 +640,8 @@ end;
 		writeln('Round ',i);
 		writeln('desk:');
 		Desk:=FirstD;
-		ShowDesk;
-	 end;
+		//ShowDesk;
+	 end;}
  end;
 
 
